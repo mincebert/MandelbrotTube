@@ -2,7 +2,7 @@
 NEW
 AUTO
 REM>Mandel
-REM v3.2 (2021-09-06)
+REM v3.2.1 (2021-09-06)
 REM Mandelbrot generator using
 REM Tube processor and block
 REM screen memory xfer OSWORD
@@ -52,31 +52,32 @@ screenbuf%=screenbuf1%
 IF doublebuf% THEN othscreenbuf%=screenbuf2%
 :
 REM centre and screen "radius"
-xc=-0.4
-yc=0
-xr=1.65
-yr=1.4
+rc=-0.5
+ic=0
+rr=1.65
+ir=1.4
 :
 REM zoom/pan redraw loop
+anim%=FALSE
 REPEAT
 :
 start%=TIME
 screenblock%=DISPLAYSTART
 REM precalculate screen->num
 REM scaling factor
-xscl=xr/80
-yscl=yr/128
+rscl=rr/80
+iscl=ir/128
 :
 totaliters%=0
 FOR ys%=255 TO 0 STEP -buflines%
 byte%=0
 FOR y%=ys% TO ys%-buflines%+1 STEP -8
-PRINT CHR$(30);SPC(3-LEN(STR$(y%)));y%
+PRINT TAB(0,31);SPC(3-LEN(STR$(y%)));y%;
 FOR x%=0 TO 159 STEP 2
 FOR yi%=y% TO y%-7 STEP -1
 value%=0
 FOR offset%=0 TO 1
-iters%=FNmandel((x%+offset%-80)*xscl+xc,(yi%-128)*yscl+yc,maxiters%)
+iters%=FNmandel((x%+offset%-80)*rscl+rc,(yi%-128)*iscl+ic,maxiters%)
 totaliters%=totaliters%+iters%
 IF iters%<maxiters% THEN value%=value% OR colourmap%(offset%,(iters% MOD 7)+1)
 NEXT
@@ -91,10 +92,22 @@ screenblock%=screenblock%+byte%
 NEXT
 end%=TIME
 :
-PRINT TAB(0,30);(end%-start%)/100;"s"';totaliters%;" iters";
+PRINT TAB(0,29);(end%-start%)/100;"s"';totaliters%;" iters";
 :
-xc=xc-0.01
-UNTIL FALSE
+REM shift the displayed area
+rc=rc-rr/160
+rr=rr/1.005
+ir=ir/1.005
+:
+REM loop if we're animating and
+REM we didn't get a screen of
+REM nothing (all out of range or
+REM all in the set)
+UNTIL NOT(anim%) OR totaliters%=160*256 OR totaliters%=160*256*maxiters%
+:
+REM return cursor to home
+VDU 30
+END
 :
 DEFPROCosword(num%,addr%)
 LOCAL A%,X%,Y%
