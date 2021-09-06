@@ -2,20 +2,28 @@
 NEW
 AUTO
 REM>Mandel
-REM v3.1 (2021-06-19)
+REM v3.1.1 (2021-07-20)
 REM Mandelbrot generator using
 REM Tube processor and block
 REM screen memory xfer OSWORD
 :
 MODE 2
-DIM params% 20
-DIM colourmap%(1,15)
-buflines%=8
-doublebuf%=TRUE
-DIM screenbuf1% 80*buflines%
-IF doublebuf% THEN DIM screenbuf2% 80*buflines%
 :
 OSWORD=&FFF1
+DISPLAYSTART=&3000
+:
+DIM params% 20
+DIM colourmap%(1,15)
+:
+REM parameters to adjust
+REM generation performance
+doublebuf%=TRUE
+buflines%=8
+maxiters%=80
+:
+IF (256 MOD buflines%)<>0 THEN PRINT "Error: buflines% must be a divisor of 256":STOP
+DIM screenbuf1% 80*buflines%
+IF doublebuf% THEN DIM screenbuf2% 80*buflines%
 :
 REM install TrubXfer OSWORD &E0
 REM in IO processor and hook
@@ -40,9 +48,8 @@ colourmap%(pixel%,colour%)=(2-pixel%)*((colour% AND 1)+2*(colour% AND 2)+4*(colo
 NEXT
 NEXT
 :
-times%=0
-maxiters%=80
-screenblock%=&3000
+totaliters%=0
+screenblock%=DISPLAYSTART
 REM start with first buffer
 screenbuf%=screenbuf1%
 IF doublebuf% THEN othscreenbuf%=screenbuf2%
@@ -56,7 +63,7 @@ FOR yi%=y% TO y%-7 STEP -1
 value%=0
 FOR offset%=0 TO 1
 iters%=FNmandel((x%+offset%-100)/48,(yi%-128)/96,maxiters%)
-times%=times%+iters%
+totaliters%=totaliters%+iters%
 IF iters%<maxiters% THEN value%=value% OR colourmap%(offset%,(iters% MOD 7)+1)
 NEXT
 screenbuf%?byte%=value%
@@ -71,7 +78,7 @@ NEXT
 end%=TIME
 :
 VDU 30
-PRINT ;(end%-start%)/100;"s"';times%;" times"
+PRINT ;(end%-start%)/100;"s"';totaliters%;" iters"
 END
 :
 DEFPROCosword(num%,addr%)
@@ -83,7 +90,6 @@ CALL OSWORD
 ENDPROC
 :
 DEFPROCxfer2io(paddr%,ioaddr%,len%,wait%)
-LOCAL finish%
 params%?0=11:REM 11 bytes sent
 params%?1=-wait%:REM 1 byte returned if waiting
 params%?2=0:REM op=0 => 2nd>IO
