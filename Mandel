@@ -1,0 +1,86 @@
+*BASIC
+NEW
+AUTO
+ REM>Mandel
+ MODE 2
+ start%=TIME
+ next%=start%
+ DIM params% 100
+ DIM colourmap%(1,15)
+ datasize%=&280
+ DIM data% datasize%
+ USERV=&200
+ :
+ FOR pixel%=0 TO 1
+ FOR colour%=0 TO 15
+ colourmap%(pixel%,colour%)=(2-pixel%)*((colour% AND 1)+2*(colour% AND 2)+4*(colour% AND 4)+8*(colour% AND 8))
+ NEXT
+ NEXT
+ :
+ D%=64
+ pa%=&3000
+ FOR y%=255 TO 0 STEP -8
+ byte%=data%
+ FOR x%=0 TO 159 STEP 2
+ FOR yi%=y% TO y%-7 STEP -1
+ value%=0
+ C%=FNmandel((x%-100)/48,(yi%-128)/96,D%)
+ IF C%<>D% THEN value%=colourmap%(0,(C% MOD 7)+1)
+ C%=FNmandel((x%+1-100)/48,(yi%-128)/96,D%)
+ IF C%<>D% THEN value%=value% OR colourmap%(1,(C% MOD 7)+1)
+ ?byte%=value%
+ byte%=byte%+1
+ NEXT
+ NEXT
+ REPEAT UNTIL TIME>=next%
+ PROCxferio(data%,pa%,datasize%)
+ next%=TIME+1
+ pa%=pa%+datasize%
+ NEXT
+ :
+ PRINT ;(TIME-start%)/100;"s";
+ END
+ :
+ DEFPROCwriteio(addr%,value%)
+ !params%=addr%
+ params%?4=value%
+ PROCosword(6,params%)
+ ENDPROC
+ :
+ DEFPROCosword(num%,addr%)
+ A%=num%
+ X%=addr% MOD 256
+ Y%=addr% DIV 256
+ CALL &FFF1
+ ENDPROC
+ :
+ DEFPROCxferio(paddr%,ioaddr%,len%)
+ LOCAL finish%
+ params%?0=11
+ params%?1=0
+ params%?2=0
+ params%!3=paddr%
+ params%?7=ioaddr% MOD 256
+ params%?8=ioaddr% DIV 256
+ params%?9=len% MOD 256
+ params%?10=len% DIV 256
+ PROCosword(&E0,params%)
+ ENDPROC
+ :
+ DEFFNmandel(x,y,maxiter%)
+ LOCAL xi,yi,xs,ys,iter%,xj
+ xi=0
+ yi=0
+ xs=0
+ ys=0
+ iter%=0
+ REPEAT
+ xj=xs-ys+x
+ yi=2*xi*yi+y
+ xi=xj
+ xs=xi*xi
+ ys=yi*yi
+ iter%=iter%+1
+ UNTIL iter%>=maxiter% OR (xs+ys)>=4
+ =iter%
+>*SPOOL
