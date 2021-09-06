@@ -2,7 +2,7 @@
 NEW
 AUTO
 REM>Mandel
-REM v3.1.1 (2021-07-20)
+REM v3.2 (2021-09-06)
 REM Mandelbrot generator using
 REM Tube processor and block
 REM screen memory xfer OSWORD
@@ -18,7 +18,7 @@ DIM colourmap%(1,15)
 REM parameters to adjust
 REM generation performance
 doublebuf%=TRUE
-buflines%=8
+buflines%=32
 maxiters%=80
 :
 IF (256 MOD buflines%)<>0 THEN PRINT "Error: buflines% must be a divisor of 256":STOP
@@ -41,19 +41,33 @@ params%?2=&FF:REM =test
 PROCosword(&E0,params%)
 ON ERROR OFF
 :
-start%=TIME
 FOR pixel%=0 TO 1
 FOR colour%=0 TO 15
 colourmap%(pixel%,colour%)=(2-pixel%)*((colour% AND 1)+2*(colour% AND 2)+4*(colour% AND 4)+8*(colour% AND 8))
 NEXT
 NEXT
 :
-totaliters%=0
-screenblock%=DISPLAYSTART
 REM start with first buffer
 screenbuf%=screenbuf1%
 IF doublebuf% THEN othscreenbuf%=screenbuf2%
 :
+REM centre and screen "radius"
+xc=-0.4
+yc=0
+xr=1.65
+yr=1.4
+:
+REM zoom/pan redraw loop
+REPEAT
+:
+start%=TIME
+screenblock%=DISPLAYSTART
+REM precalculate screen->num
+REM scaling factor
+xscl=xr/80
+yscl=yr/128
+:
+totaliters%=0
 FOR ys%=255 TO 0 STEP -buflines%
 byte%=0
 FOR y%=ys% TO ys%-buflines%+1 STEP -8
@@ -62,7 +76,7 @@ FOR x%=0 TO 159 STEP 2
 FOR yi%=y% TO y%-7 STEP -1
 value%=0
 FOR offset%=0 TO 1
-iters%=FNmandel((x%+offset%-100)/48,(yi%-128)/96,maxiters%)
+iters%=FNmandel((x%+offset%-80)*xscl+xc,(yi%-128)*yscl+yc,maxiters%)
 totaliters%=totaliters%+iters%
 IF iters%<maxiters% THEN value%=value% OR colourmap%(offset%,(iters% MOD 7)+1)
 NEXT
@@ -77,9 +91,10 @@ screenblock%=screenblock%+byte%
 NEXT
 end%=TIME
 :
-VDU 30
-PRINT ;(end%-start%)/100;"s"';totaliters%;" iters"
-END
+PRINT TAB(0,30);(end%-start%)/100;"s"';totaliters%;" iters";
+:
+xc=xc-0.01
+UNTIL FALSE
 :
 DEFPROCosword(num%,addr%)
 LOCAL A%,X%,Y%
