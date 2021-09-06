@@ -3,24 +3,21 @@ NEW
 AUTO
  REM>Mandel
  MODE 2
- start%=TIME
- next%=start%
  DIM params% 100
  DIM colourmap%(1,15)
- datasize%=&280
- DIM data% datasize%
+ DIM data% &5000
  USERV=&200
  :
+ start%=TIME
  FOR pixel%=0 TO 1
  FOR colour%=0 TO 15
  colourmap%(pixel%,colour%)=(2-pixel%)*((colour% AND 1)+2*(colour% AND 2)+4*(colour% AND 4)+8*(colour% AND 8))
  NEXT
  NEXT
  :
- D%=64
- pa%=&3000
- FOR y%=255 TO 0 STEP -8
+ D%=32
  byte%=data%
+ FOR y%=255 TO 0 STEP -8
  FOR x%=0 TO 159 STEP 2
  FOR yi%=y% TO y%-7 STEP -1
  value%=0
@@ -32,11 +29,8 @@ AUTO
  byte%=byte%+1
  NEXT
  NEXT
- REPEAT UNTIL TIME>=next%
- PROCxferio(data%,pa%,datasize%)
- next%=TIME+1
- pa%=pa%+datasize%
  NEXT
+ PROCxferio(data%,&3000,&5000)
  :
  PRINT ;(TIME-start%)/100;"s";
  END
@@ -48,10 +42,7 @@ AUTO
  ENDPROC
  :
  DEFPROCosword(num%,addr%)
- A%=num%
- X%=addr% MOD 256
- Y%=addr% DIV 256
- CALL &FFF1
+ SYS &7,num%,addr%
  ENDPROC
  :
  DEFPROCxferio(paddr%,ioaddr%,len%)
@@ -68,19 +59,15 @@ AUTO
  ENDPROC
  :
  DEFFNmandel(x,y,maxiter%)
- LOCAL xi,yi,xs,ys,iter%,xj
- xi=0
- yi=0
- xs=0
- ys=0
+ LOCAL xi,yi,iter%,xj
+ xi=x
+ yi=y
  iter%=0
- REPEAT
- xj=xs-ys+x
+ WHILE iter%<maxiter% AND (xi*xi+yi*yi)<4
+ xj=xi*xi-yi*yi+x
  yi=2*xi*yi+y
  xi=xj
- xs=xi*xi
- ys=yi*yi
- iter%=iter%+1
- UNTIL iter%>=maxiter% OR (xs+ys)>=4
+ iter%+=1
+ ENDWHILE
  =iter%
 >*SPOOL
