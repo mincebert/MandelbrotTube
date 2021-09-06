@@ -1,73 +1,111 @@
 *BASIC
 NEW
 AUTO
- REM>Mandel
- MODE 2
- DIM params% 100
- DIM colourmap%(1,15)
- DIM data% &5000
- USERV=&200
- :
- start%=TIME
- FOR pixel%=0 TO 1
- FOR colour%=0 TO 15
- colourmap%(pixel%,colour%)=(2-pixel%)*((colour% AND 1)+2*(colour% AND 2)+4*(colour% AND 4)+8*(colour% AND 8))
- NEXT
- NEXT
- :
- D%=32
- byte%=data%
- FOR y%=255 TO 0 STEP -8
- FOR x%=0 TO 159 STEP 2
- FOR yi%=y% TO y%-7 STEP -1
- value%=0
- C%=FNmandel((x%-100)/48,(yi%-128)/96,D%)
- IF C%<>D% THEN value%=colourmap%(0,(C% MOD 7)+1)
- C%=FNmandel((x%+1-100)/48,(yi%-128)/96,D%)
- IF C%<>D% THEN value%=value% OR colourmap%(1,(C% MOD 7)+1)
- ?byte%=value%
- byte%=byte%+1
- NEXT
- NEXT
- NEXT
- PROCxferio(data%,&3000,&5000)
- :
- PRINT ;(TIME-start%)/100;"s";
- END
- :
- DEFPROCwriteio(addr%,value%)
- !params%=addr%
- params%?4=value%
- PROCosword(6,params%)
- ENDPROC
- :
- DEFPROCosword(num%,addr%)
- SYS &7,num%,addr%
- ENDPROC
- :
- DEFPROCxferio(paddr%,ioaddr%,len%)
- LOCAL finish%
- params%?0=11
- params%?1=0
- params%?2=0
- params%!3=paddr%
- params%?7=ioaddr% MOD 256
- params%?8=ioaddr% DIV 256
- params%?9=len% MOD 256
- params%?10=len% DIV 256
- PROCosword(&E0,params%)
- ENDPROC
- :
- DEFFNmandel(x,y,maxiter%)
- LOCAL xi,yi,iter%,xj
- xi=x
- yi=y
- iter%=0
- WHILE iter%<maxiter% AND (xi*xi+yi*yi)<4
- xj=xi*xi-yi*yi+x
- yi=2*xi*yi+y
- xi=xj
- iter%+=1
- ENDWHILE
- =iter%
+REM>Mandel
+REM v3.1 (2021-06-19)
+REM Mandelbrot generator using
+REM Tube processor and block
+REM screen memory xfer OSWORD
+:
+MODE 2
+DIM params% 20
+DIM colourmap%(1,15)
+buflines%=8
+doublebuf%=TRUE
+DIM screenbuf1% 80*buflines%
+IF doublebuf% THEN DIM screenbuf2% 80*buflines%
+:
+OSWORD=&FFF1
+:
+REM install TrubXfer OSWORD &E0
+REM in IO processor and hook
+REM USERV if not already
+REM installed
+:
+REM catch if not loaded and try
+REM to load it
+inerr%=FALSE
+ON ERROR IF inerr% THEN REPORT:PRINT " in error at line ";ERL:END ELSE inerr%=TRUE:IF ERR=254 THEN OSCLI("RUN TubeXfrX") ELSE REPORT:PRINT " at line ";ERL:END
+REM test if present
+params%?0=3
+params%?1=1
+params%?2=&FF:REM =test
+PROCosword(&E0,params%)
+ON ERROR OFF
+:
+start%=TIME
+FOR pixel%=0 TO 1
+FOR colour%=0 TO 15
+colourmap%(pixel%,colour%)=(2-pixel%)*((colour% AND 1)+2*(colour% AND 2)+4*(colour% AND 4)+8*(colour% AND 8))
+NEXT
+NEXT
+:
+times%=0
+maxiters%=80
+screenblock%=&3000
+REM start with first buffer
+screenbuf%=screenbuf1%
+IF doublebuf% THEN othscreenbuf%=screenbuf2%
+:
+FOR ys%=255 TO 0 STEP -buflines%
+byte%=0
+FOR y%=ys% TO ys%-buflines%+1 STEP -8
+PRINT CHR$(30);SPC(3-LEN(STR$(y%)));y%
+FOR x%=0 TO 159 STEP 2
+FOR yi%=y% TO y%-7 STEP -1
+value%=0
+FOR offset%=0 TO 1
+iters%=FNmandel((x%+offset%-100)/48,(yi%-128)/96,maxiters%)
+times%=times%+iters%
+IF iters%<maxiters% THEN value%=value% OR colourmap%(offset%,(iters% MOD 7)+1)
+NEXT
+screenbuf%?byte%=value%
+byte%=byte%+1
+NEXT
+NEXT
+NEXT
+PROCxfer2io(screenbuf%,screenblock%,80*buflines%,NOT(doublebuf%))
+IF doublebuf% THEN tmpscreenbuf%=screenbuf%:screenbuf%=othscreenbuf%:othscreenbuf%=tmpscreenbuf%
+screenblock%=screenblock%+byte%
+NEXT
+end%=TIME
+:
+VDU 30
+PRINT ;(end%-start%)/100;"s"';times%;" times"
+END
+:
+DEFPROCosword(num%,addr%)
+LOCAL A%,X%,Y%
+A%=num%
+X%=addr% MOD 256
+Y%=addr% DIV 256
+CALL OSWORD
+ENDPROC
+:
+DEFPROCxfer2io(paddr%,ioaddr%,len%,wait%)
+LOCAL finish%
+params%?0=11:REM 11 bytes sent
+params%?1=-wait%:REM 1 byte returned if waiting
+params%?2=0:REM op=0 => 2nd>IO
+params%!3=paddr%
+params%?7=ioaddr% MOD 256
+params%?8=ioaddr% DIV 256
+params%?9=len% MOD 256
+params%?10=len% DIV 256
+REM OSWORD &E0 is TubeXfr
+PROCosword(&E0,params%)
+ENDPROC
+:
+DEFFNmandel(x,y,maxiter%)
+LOCAL xi,yi,iter%,xj
+xi=x
+yi=y
+iter%=0
+REPEAT
+xj=xi*xi-yi*yi+x
+yi=2*xi*yi+y
+xi=xj
+iter%=iter%+1
+UNTIL iter%>maxiter% OR (xi*xi+yi*yi)>=4
+=iter%
 >*SPOOL
