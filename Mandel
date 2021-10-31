@@ -2,7 +2,7 @@
 NEW
 AUTO
 REM>Mandel
-REM v3.2.1 (2021-09-06)
+REM v3.3 (2021-10-31)
 REM Mandelbrot generator using
 REM Tube processor and block
 REM screen memory xfer OSWORD
@@ -37,7 +37,8 @@ ON ERROR IF inerr% THEN REPORT:PRINT " in error at line ";ERL:END ELSE inerr%=TR
 REM test if present
 params%?0=3
 params%?1=1
-params%?2=&FF:REM =test
+params%?2=0
+params%?3=&FF:REM =test
 PROCosword(&E0,params%)
 ON ERROR OFF
 :
@@ -118,14 +119,15 @@ CALL OSWORD
 ENDPROC
 :
 DEFPROCxfer2io(paddr%,ioaddr%,len%,wait%)
-params%?0=11:REM 11 bytes sent
-params%?1=-wait%:REM 1 byte returned if waiting
-params%?2=0:REM op=0 => 2nd>IO
-params%!3=paddr%
-params%?7=ioaddr% MOD 256
-params%?8=ioaddr% DIV 256
-params%?9=len% MOD 256
-params%?10=len% DIV 256
+params%?0=12:REM 12 bytes sent
+params%?1=wait%*-3:REM 3 bytes returned if waiting
+params%?2=0:REM return code
+params%?3=0:REM op=0 => P>IO
+params%!4=paddr%
+params%?8=ioaddr% MOD 256
+params%?9=ioaddr% DIV 256
+params%?10=len% MOD 256
+params%?11=len% DIV 256
 REM OSWORD &E0 is TubeXfr
 PROCosword(&E0,params%)
 ENDPROC
@@ -142,4 +144,3 @@ xi=xj
 iter%=iter%+1
 UNTIL iter%>maxiter% OR (xi*xi+yi*yi)>=4
 =iter%
->*SPOOL
