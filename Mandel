@@ -2,7 +2,7 @@
 NEW
 AUTO
 REM>Mandel
-REM v3.3 (2021-10-31)
+REM v3.3.1 (2021-10-31)
 REM Mandelbrot generator using
 REM Tube processor and block
 REM screen memory xfer OSWORD
@@ -87,7 +87,7 @@ byte%=byte%+1
 NEXT
 NEXT
 NEXT
-PROCxfer2io(screenbuf%,screenblock%,80*buflines%,NOT(doublebuf%))
+PROCxfer2h(screenbuf%,screenblock%,80*buflines%,NOT(doublebuf%))
 IF doublebuf% THEN tmpscreenbuf%=screenbuf%:screenbuf%=othscreenbuf%:othscreenbuf%=tmpscreenbuf%
 screenblock%=screenblock%+byte%
 NEXT
@@ -118,14 +118,14 @@ Y%=addr% DIV 256
 CALL OSWORD
 ENDPROC
 :
-DEFPROCxfer2io(paddr%,ioaddr%,len%,wait%)
+DEFPROCxfer2h(paddr%,haddr%,len%,wait%)
 params%?0=12:REM 12 bytes sent
 params%?1=wait%*-3:REM 3 bytes returned if waiting
 params%?2=0:REM return code
-params%?3=0:REM op=0 => P>IO
+params%?3=0:REM op=0 => P>H
 params%!4=paddr%
-params%?8=ioaddr% MOD 256
-params%?9=ioaddr% DIV 256
+params%?8=haddr% MOD 256
+params%?9=haddr% DIV 256
 params%?10=len% MOD 256
 params%?11=len% DIV 256
 REM OSWORD &E0 is TubeXfr
