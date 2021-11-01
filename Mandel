@@ -2,7 +2,7 @@
 NEW
 AUTO
 REM>Mandel
-REM v3.3.1 (2021-10-31)
+REM v3.3.2 (2021-11-01)
 REM Mandelbrot generator using
 REM Tube processor and block
 REM screen memory xfer OSWORD
@@ -25,8 +25,8 @@ IF (256 MOD buflines%)<>0 THEN PRINT "Error: buflines% must be a divisor of 256"
 DIM screenbuf1% 80*buflines%
 IF doublebuf% THEN DIM screenbuf2% 80*buflines%
 :
-REM install TrubXfer OSWORD &E0
-REM in IO processor and hook
+REM install TubeXfer OSWORD &E0
+REM in host processor and hook
 REM USERV if not already
 REM installed
 :
@@ -35,12 +35,13 @@ REM to load it
 inerr%=FALSE
 ON ERROR IF inerr% THEN REPORT:PRINT " in error at line ";ERL:END ELSE inerr%=TRUE:IF ERR=254 THEN OSCLI("RUN TubeXfrX") ELSE REPORT:PRINT " at line ";ERL:END
 REM test if present
-params%?0=3
-params%?1=1
+params%?0=4
+params%?1=3
 params%?2=0
 params%?3=&FF:REM =test
 PROCosword(&E0,params%)
 ON ERROR OFF
+IF params%?2<>1 THEN PRINT "Failed loading TubeXfer":STOP
 :
 FOR pixel%=0 TO 1
 FOR colour%=0 TO 15
@@ -130,6 +131,7 @@ params%?10=len% MOD 256
 params%?11=len% DIV 256
 REM OSWORD &E0 is TubeXfr
 PROCosword(&E0,params%)
+IF wait% AND params%?2<>1 THEN PRINT "Error calling TubeXfer":STOP
 ENDPROC
 :
 DEFFNmandel(x,y,maxiter%)
